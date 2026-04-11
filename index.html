@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holo-Arch | Chinese Architectural Styles</title>
+    <!-- 引入 Plotly 库 -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    
+    <style>
+        /* ==========================================
+           0. CSS Reset & Global Theme
+           ========================================== */
+        :root {
+            --brand-blue: #1600e6; /* 极其明艳的克莱因蓝 */
+            --brand-blue-dark: #0f00a3; /* 过渡用的深蓝 */
+            --bg-main: #d9e1ec; /* 偏深的灰蓝色，降低明度，向克莱因蓝过渡更平滑 */
+            --text-dark: #111;
+            --text-gray: #555;
+            --font-display: 'Playfair Display', 'Songti SC', 'Noto Serif SC', serif; 
+            --font-sans: 'Helvetica Neue', 'Inter', -apple-system, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: var(--font-sans); 
+            background: var(--bg-main); 
+            color: var(--text-dark); 
+            overflow: hidden; 
+            -webkit-font-smoothing: antialiased;
+            transition: background 1.2s cubic-bezier(0.6, 0.04, 0.2, 1); /* 全局背景色极其平滑的过渡 */
+        }
+        
+        /* 当汉堡菜单激活时，整个 body 背景变成纯正的克莱因蓝 */
+        body.menu-open {
+            background: var(--brand-blue);
+        }
+
+        /* 纯 CSS 绘制的东方意境背景 
+           利用极其微弱的深蓝径向渐变，模拟宣纸/虚空感 */
+        .bg-canvas {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
+            background: radial-gradient(circle at 10% 90%, rgba(22, 0, 230, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 90% 10%, rgba(22, 0, 230, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+            transition: opacity 1.0s ease;
+        }
+        body.menu-open .bg-canvas { opacity: 0; }
+
+        /* 极简网格线装饰 (增加建筑几何感) */
+        .bg-grid {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
+            background-image: linear-gradient(rgba(22,0,230,0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(22,0,230,0.05) 1px, transparent 1px);
+            background-size: 100px 100px;
+            pointer-events: none;
+            transition: opacity 1.0s ease;
+        }
+        body.menu-open .bg-grid { opacity: 0; }
+
+        /* ==========================================
+           1. Left-Top Hamburger Menu
+           ========================================== */
+        .menu-btn { 
+            position: fixed; top: 50px; left: 50px; z-index: 10000; 
+            cursor: pointer; width: 45px; height: 16px; 
+            display: flex; flex-direction: column; justify-content: space-between; 
+            mix-blend-mode: difference; 
+        }
+        /* 交互细节：鼠标悬停时线条长度错落变化 */
+        .menu-btn span { 
+            display: block; height: 2px; width: 100%; 
+            background: #fff; 
+            transition: transform 0.5s cubic-bezier(0.8, 0, 0.2, 1), 
+                        opacity 0.4s, width 0.3s ease; 
+            transform-origin: right;
+        }
+        .menu-btn:hover span:nth-child(1) { width: 70%; }
+        .menu-btn:hover span:nth-child(3) { width: 85%; }
+        
+        .menu-btn.active span { width: 100%; transform-origin: center; }
+        .menu-btn.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .menu-btn.active span:nth-child(2) { opacity: 0; }
+        .menu-btn.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        /* ==========================================
+           2. Full-Screen Deep Blue Overlay
+           ========================================== */
+        .nav-overlay { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            /* 极其明艳的克莱因蓝过渡，与用户参考图一致 */
+            background: linear-gradient(135deg, rgba(22, 0, 230, 1) 0%, rgba(15, 0, 163, 0.98) 100%); 
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            z-index: 9000; 
+            transform: translateY(-100%); 
+            transition: transform 0.9s cubic-bezier(0.8, 0, 0.2, 1); /* 调整过渡曲线更丝滑 */
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .nav-overlay.active { transform: translateY(0); }
+        
+        .nav-brand {
+            position: absolute; top: 50px; 
+            color: #fff; font-size: 16px; letter-spacing: 6px; font-weight: 400; text-transform: uppercase;
+        }
+        
+        .nav-links { 
+            list-style: none; display: flex; gap: 8vw; height: 50vh; align-items: center;
+        }
+        .nav-links li { 
+            writing-mode: vertical-rl; text-orientation: upright; 
+            color: #fff; font-size: 22px; letter-spacing: 15px; 
+            font-family: var(--font-display);
+            cursor: pointer; opacity: 0.5; 
+            transition: opacity 0.4s, transform 0.4s;
+            position: relative;
+        }
+        /* 交互细节：悬停浮动并出现极简线条 */
+        .nav-links li:hover, .nav-links li.active-nav { opacity: 1; transform: translateY(-10px); }
+        .nav-links li::after {
+            content: ''; position: absolute; left: -15px; top: 0; height: 0; width: 1px;
+            background: rgba(255,255,255,0.5); transition: height 0.4s ease;
+        }
+        .nav-links li:hover::after, .nav-links li.active-nav::after { height: 100%; }
+
+        /* ==========================================
+           3. Split Layout: Main Containers
+           ========================================== */
+        .view-container { 
+            display: none; height: 100vh; width: 100vw; perspective: 1000px; 
+            opacity: 0; transition: opacity 0.8s ease;
+        }
+        .view-container.active-view { 
+            display: flex; opacity: 1; 
+        }
+        
+        /* Different Views have slightly different backgrounds for mood */
+        body.view-radar-active .bg-canvas {
+            background: radial-gradient(circle at 50% 50%, rgba(22, 0, 230, 0.05) 0%, transparent 60%);
+        }
+        body.view-sketch-active .bg-canvas {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.05) 0%, transparent 60%);
+        }
+        body.view-analytics-active .bg-canvas {
+            background: radial-gradient(circle at 80% 20%, rgba(22, 0, 230, 0.05) 0%, transparent 40%),
+                        radial-gradient(circle at 20% 80%, rgba(239, 68, 68, 0.05) 0%, transparent 40%);
+        }
+
+        .left-panel { 
+            width: 45%; height: 100%; padding: 12vh 6vw; 
+            display: flex; flex-direction: column; justify-content: center; 
+            position: relative;
+            transform-style: preserve-3d; /* For mouse parallax */
+        }
+        
+        /* Interactive Background Glow following mouse */
+        .glow-cursor {
+            position: absolute; width: 400px; height: 400px; 
+            background: radial-gradient(circle, rgba(27, 0, 255, 0.08) 0%, transparent 70%);
+            border-radius: 50%; pointer-events: none; z-index: 0;
+            transform: translate(-50%, -50%); transition: opacity 0.3s;
+            opacity: 0; mix-blend-mode: multiply;
+        }
+        .left-panel:hover .glow-cursor { opacity: 1; }
+        
+        /* 巨型水印：跟随鼠标产生视差 */
+        .watermark {
+            position: absolute; top: -5%; left: -5%;
+            font-size: 22vw; font-weight: 900; color: rgba(27, 0, 255, 0.02);
+            line-height: 0.8; font-family: var(--font-display); pointer-events: none;
+            letter-spacing: -5px; z-index: 0;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* 文字容器区：提升 z-index，防止被发光层盖住 */
+        .text-content { position: relative; z-index: 10; transform: translateZ(30px); transition: transform 0.1s ease-out; }
+
+        /* 标题排版艺术化 */
+        .left-panel h1 { 
+            font-family: var(--font-display); font-size: 5.5rem; line-height: 0.85; 
+            margin-bottom: 1.5rem; letter-spacing: -2px; color: var(--brand-blue);
+            position: relative; display: inline-block;
+        }
+        /* 标题下方的动态墨迹线条 */
+        .left-panel h1::after {
+            content: ''; position: absolute; bottom: -10px; left: 0; width: 0; height: 4px;
+            background: var(--brand-blue); transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .left-panel:hover h1::after { width: 100%; }
+
+        .left-panel h3 { 
+            font-size: 1.1rem; font-weight: 400; color: var(--text-gray); 
+            margin-bottom: 3.5rem; letter-spacing: 6px; text-transform: uppercase;
+            position: relative; padding-left: 50px;
+        }
+        .left-panel h3::before {
+            content: ''; position: absolute; left: 0; top: 50%; width: 35px; height: 1px;
+            background: var(--text-gray); transition: width 0.4s ease;
+        }
+        .left-panel:hover h3::before { width: 15px; }
+
+        /* 交互式段落：悬停时字距微扩，产生呼吸感 */
+        .intro-text { 
+            font-size: 1.15rem; line-height: 1.9; color: #444; max-width: 90%;
+            position: relative; padding-left: 30px; transition: letter-spacing 0.5s ease;
+        }
+        .left-panel:hover .intro-text { letter-spacing: 0.5px; }
+        .intro-text::before {
+            content: ''; position: absolute; left: 0; top: 10px; width: 3px; height: 0;
+            background: var(--brand-blue); transition: height 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .left-panel:hover .intro-text::before { height: 70%; }
+
+        /* 数据组件交互化：悬停数字跳动/发光 */
+        .stats-container {
+            margin-top: 6vh; display: flex; gap: 50px; position: relative; z-index: 10;
+            transform: translateZ(50px);
+        }
+        .stat-item { 
+            display: flex; flex-direction: column; gap: 8px; cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .stat-item:hover { transform: translateY(-5px); }
+        .stat-num { 
+            font-family: var(--font-display); font-size: 3.5rem; color: transparent; 
+            -webkit-text-stroke: 1px var(--brand-blue); line-height: 1;
+            transition: all 0.4s ease;
+        }
+        .stat-item:hover .stat-num { color: var(--brand-blue); text-shadow: 0 10px 20px rgba(27,0,255,0.2); }
+        .stat-label { font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase; color: #999; }
+
+        /* ==========================================
+           4. Right Panel: Auto-Scrolling Gallery
+           ========================================== */
+        .right-panel { 
+            width: 55%; height: 100vh; overflow-y: auto; 
+            padding: 50px 50px 50px 0; /* 左侧不留白，让图片紧贴中轴 */
+            /* Hide scrollbar */
+            -ms-overflow-style: none; scrollbar-width: none;
+        }
+        .right-panel::-webkit-scrollbar { display: none; }
+
+        .gallery { 
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; 
+            padding-bottom: 50vh; /* 留出底部滚动缓冲 */
+        }
+        
+        .gallery-item { 
+            height: 450px; cursor: pointer; position: relative; overflow: hidden;
+            background: #e9e9e9;
+            /* 交互细节：图片轻微的视差移动准备 */
+        }
+        /* 错落的网格排版：让右侧列整体下移，打破死板 */
+        .gallery-item:nth-child(even) { transform: translateY(100px); }
+        
+        /* 统一使用深蓝色调处理未加载时的占位符 */
+        .placeholder {
+            width: 100%; height: 100%; background: #f0f0f0; 
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden;
+        }
+        .gallery-img {
+            width: 100%; height: 100%; object-fit: cover;
+            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .gallery-item:hover .gallery-img { transform: scale(1.05); }
+
+        /* 模拟图片加载的流动光影 */
+        .placeholder::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(27,0,255,0.05), transparent);
+            animation: loading 2s infinite;
+        }
+        @keyframes loading { 100% { left: 100%; } }
+
+        /* 遮罩与标签动画 */
+        .item-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(27, 0, 255, 0.8); opacity: 0;
+            transition: opacity 0.4s ease; display: flex; align-items: center; justify-content: center;
+        }
+        .gallery-item:hover .item-overlay { opacity: 1; }
+        
+        .item-label {
+            color: #fff; font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 2px;
+            transform: translateY(20px); transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .gallery-item:hover .item-label { transform: translateY(0); }
+
+        /* ==========================================
+           5. Pop-up Card Modal (Bilingual)
+           ========================================== */
+        .modal { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: rgba(250, 250, 250, 0.85); backdrop-filter: blur(12px);
+            z-index: 8000; display: flex; align-items: center; justify-content: center; 
+            opacity: 0; pointer-events: none; transition: opacity 0.5s ease; 
+        }
+        .modal.active { opacity: 1; pointer-events: all; }
+        
+        .modal-card { 
+            background: #fff; width: 550px; padding: 60px; 
+            box-shadow: 0 40px 80px rgba(27, 0, 255, 0.08); 
+            border: 1px solid rgba(27, 0, 255, 0.1);
+            transform: translateY(40px) scale(0.98); 
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal.active .modal-card { transform: translateY(0) scale(1); }
+        
+        .modal-header { border-bottom: 1px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
+        .modal-card h2 { font-family: var(--font-display); font-size: 2.2rem; color: var(--brand-blue); margin-bottom: 5px; }
+        .modal-card h4 { font-size: 0.9rem; color: #999; font-weight: normal; letter-spacing: 2px; text-transform: uppercase; }
+        
+        .modal-card p { line-height: 1.8; color: #555; margin-bottom: 20px; font-size: 1.05rem; }
+        .insight-box {
+            background: rgba(27, 0, 255, 0.03); padding: 20px; border-left: 3px solid var(--brand-blue);
+            font-size: 0.95rem; color: #333; margin-top: 30px;
+        }
+
+        /* 专门为 21 流派列表设计的样式 */
+        .style-list {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px;
+        }
+        .style-pill {
+            padding: 12px 15px; background: transparent; border-radius: 6px; text-align: center;
+            font-size: 0.95rem; color: #555; cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid #ddd; font-family: var(--font-sans); letter-spacing: 1px;
+        }
+        .style-pill:hover { 
+            background: rgba(22, 0, 230, 0.03); 
+            border-color: var(--brand-blue); 
+            color: var(--brand-blue); 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(22, 0, 230, 0.08);
+        }
+
+        /* 优化 Close 按钮，使其不突兀 */
+        .close-btn {
+            margin-top: 30px;
+            padding: 10px 0;
+            width: 100%;
+            background: transparent;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            color: #888;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: var(--font-sans);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .close-btn:hover {
+            border-color: var(--brand-blue);
+            color: var(--brand-blue);
+            background: rgba(27, 0, 255, 0.02);
+        }
+
+        /* 专门为全息雷达 (Radar) 设计的样式 */
+        .upload-area {
+            width: 100%; height: 60vh; border: 2px dashed rgba(22, 0, 230, 0.3); border-radius: 10px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden;
+            background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px);
+        }
+        .upload-area:hover { 
+            border-color: var(--brand-blue); 
+            background: rgba(22, 0, 230, 0.05); 
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(22, 0, 230, 0.1);
+        }
+        .upload-icon { font-size: 3rem; color: var(--brand-blue); margin-bottom: 20px; transition: transform 0.3s; }
+        .upload-area:hover .upload-icon { transform: translateY(-10px); }
+        .upload-text { font-size: 1.2rem; color: #555; letter-spacing: 2px; }
+        #preview-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0; display: none; }
+        #file-input { display: none; }
+        
+        .radar-scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: var(--brand-blue); box-shadow: 0 0 30px 5px var(--brand-blue);
+            display: none; animation: scan 1.5s ease-in-out infinite alternate; z-index: 10;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: calc(100% - 4px); } }
+
+        .result-box { margin-top: 30px; opacity: 0; transition: opacity 0.5s; }
+        .result-box.active { opacity: 1; }
+
+        /* 专门为水墨界画 (Sketch) 设计的样式 */
+        .sketch-container {
+            position: relative; width: 100%; height: 60vh; background: #fff;
+            border-radius: 10px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+            /* 防止拖拽时选中内容导致浏览器默认的蓝色高亮 */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .sketch-layer { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; 
+            pointer-events: none; /* 防止图片被直接拖拽 */
+        }
+        .sketch-overlay { 
+            position: absolute; top: 0; right: 0; width: 50%; height: 100%; 
+            overflow: hidden; border-left: 2px solid var(--brand-blue);
+            transition: width 0.1s;
+            pointer-events: none; /* 防止内部图片被拖拽 */
+        }
+        .sketch-overlay img {
+            pointer-events: none; /* 彻底禁用拖拽 */
+        }
+        .sketch-slider-handle {
+            position: absolute; top: 50%; right: 50%; transform: translate(50%, -50%);
+            width: 40px; height: 40px; background: var(--brand-blue); color: #fff;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            cursor: ew-resize; z-index: 10; font-size: 20px; box-shadow: 0 0 20px rgba(22, 0, 230, 0.4);
+            transition: right 0.1s;
+            user-select: none; /* 防止按钮文字被选中 */
+        }
+
+    </style>
+</head>
+<body>
+    <!-- 纯 CSS 背景装饰 -->
+    <div class="bg-canvas"></div>
+    <div class="bg-grid"></div>
+
+    <!-- 1. Hamburger Menu -->
+    <div class="menu-btn" onclick="toggleMenu()">
+        <span></span><span></span><span></span>
+    </div>
+
+    <!-- 2. Full-screen Deep Blue Overlay -->
+    <nav class="nav-overlay" id="nav">
+        <div class="nav-brand">Holo-Arch Engine</div>
+        <ul class="nav-links">
+            <li class="active-nav" onclick="switchView('home')">首 页</li>
+            <li onclick="switchView('radar')">全息雷达</li>
+            <li onclick="switchView('sketch')">水墨界画</li>
+            <li onclick="switchView('analytics')">模型解析</li>
+        </ul>
+    </nav>
+
+    <!-- ==========================================
+         VIEW 1: HOME (Gallery)
+         ========================================== -->
+    <div class="view-container active-view" id="view-home">
+        
+        <!-- Left Panel: Project Intro -->
+        <div class="left-panel" id="left-panel">
+            <div class="glow-cursor" id="glow"></div>
+            <div class="watermark" id="watermark">ARCH</div>
+            
+            <div class="text-content" id="text-content">
+                <h1>Holo<br>Arch</h1>
+                <h3>Architecture Recognition</h3>
+                <p class="intro-text">
+                    基于全纯逻辑同构 (Holomorphic Logic Isomorphism) 与柯西 FFT 提取引擎。在极其轻量的参数下，不仅精准识别各省份地域流派，更将复杂的榫卯与飞檐结构量化为可见的分析走廊。<br><br>
+                    模型认知不再是黑盒，而是一片可走进去的山河。
+                </p>
+                
+                <div class="stats-container">
+                    <div class="stat-item" onclick="openStyleListModal()">
+                        <span class="stat-num">21</span>
+                        <span class="stat-label">Architectural Styles</span>
+                    </div>
+                    <div class="stat-item" onclick="openMathModal()">
+                        <span class="stat-num">Ψ</span>
+                        <span class="stat-label">Analytical Stress</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Auto-Scrolling Gallery -->
+        <div class="right-panel" id="gallery-container">
+            <div class="gallery" id="gallery">
+                <!-- JavaScript will populate the items here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         VIEW 2: HOLO RADAR (Inference)
+         ========================================== -->
+    <div class="view-container" id="view-radar">
+        <!-- Interactive Canvas Background -->
+        <canvas id="radar-canvas-bg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: auto;"></canvas>
+        
+        <!-- Left Panel: Upload Area -->
+        <div class="left-panel" style="align-items: center;">
+            <h2 style="font-family: var(--font-display); font-size: 3rem; margin-bottom: 30px; color: var(--brand-blue);">全息雷达</h2>
+            <p style="margin-bottom: 40px; color: #666;">上传任意中国古建筑图片，HoloPGF 引擎将进行实时特征提取与流派推断。</p>
+            
+            <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                <div class="radar-scan-line" id="scan-line"></div>
+                <div class="upload-icon">⇪</div>
+                <div class="upload-text">点击或拖拽图片至此处</div>
+                <img id="preview-img" alt="Preview">
+                <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)">
+            </div>
+        </div>
+
+        <!-- Right Panel: Result Display -->
+        <div class="right-panel" style="display: flex; flex-direction: column; justify-content: center; padding: 0 10vw; position: relative;">
+            <div class="result-box" id="inference-result" style="display: none;">
+                <!-- Dynamic Content Will Be Injected Here -->
+            </div>
+            
+            <!-- Default Radar Placeholder Background -->
+            <div id="radar-placeholder" style="width: 100%; height: 60vh; background: #f8f9fa; border-radius: 8px; border: 1px dashed #d1d5db; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #9ca3af;">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 20px; opacity: 0.5;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="2" x2="12" y2="12"></line>
+                    <line x1="12" y1="12" x2="22" y2="12"></line>
+                </svg>
+                <span style="font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 2px;">Waiting for Architecture Image</span>
+                <span style="font-size: 0.85rem; letter-spacing: 1px; margin-top: 10px;">Upload image on the left to start HoloPGF scan</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         VIEW 3: HOLO SKETCH (Aesthetics)
+         ========================================== -->
+    <div class="view-container" id="view-sketch">
+        <!-- Interactive Canvas Background -->
+        <canvas id="sketch-canvas-bg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: auto;"></canvas>
+        
+        <!-- Left Panel: Intro & Upload -->
+        <div class="left-panel" style="align-items: center;">
+            <div class="watermark" style="font-size: 15vw; top: 10%; color: rgba(0,0,0,0.03);">INK</div>
+            <h2 style="font-family: var(--font-display); font-size: 3rem; margin-bottom: 20px; color: #111;">水墨界画</h2>
+            <h4 style="color: #888; font-weight: normal; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 30px;">Mathematical Aesthetics</h4>
+            <p style="margin-bottom: 20px; color: #666; text-align: center; max-width: 80%; line-height: 1.8;">通过 2D 傅里叶变换 (FFT) 与带通滤波，剥离建筑的低频色彩光影，重构跨越千年的高频几何骨架。</p>
+            
+            <button class="style-pill" style="margin-bottom: 30px; font-size: 0.85rem; padding: 8px 15px; width: auto; display: inline-block;" onclick="openJiehuaModal()">什么是界画？</button>
+
+            <div class="upload-area" id="sketch-drop-zone" onclick="document.getElementById('sketch-file-input').click()" style="height: 25vh; margin-bottom: 20px; border-color: rgba(0,0,0,0.2); display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <div class="radar-scan-line" id="sketch-scan-line" style="background: #111; box-shadow: 0 0 20px 2px #111;"></div>
+                <div class="upload-text" id="sketch-upload-text" style="font-size: 1rem; color: #333; margin-top: 0;">上传图片生成界画</div>
+                <input type="file" id="sketch-file-input" accept="image/*" onchange="handleSketchFileSelect(event)" style="display: none;">
+            </div>
+            
+            <div id="sketch-status" style="color: #111; font-family: var(--font-display); font-size: 1.2rem;"></div>
+        </div>
+
+        <!-- Right Panel: Image Slider Comparison -->
+        <div class="right-panel" style="display: flex; flex-direction: column; justify-content: center; padding: 0 5vw;">
+            <div class="sketch-container" id="sketch-slider-container" style="display: none; border-radius: 2px; box-shadow: 0 30px 60px rgba(0,0,0,0.15);">
+                <!-- Base Image (Original) -->
+                <img id="sketch-orig-img" class="sketch-layer" src="" alt="Original">
+                <!-- Top Image (Sketch, clipped via width) -->
+                <div class="sketch-overlay" id="sketch-overlay-container" style="border-left: 2px solid #111;">
+                    <!-- The sketch image needs to stay fixed width relative to container, so we use object-fit and position right -->
+                    <img id="sketch-result-img" style="position: absolute; top: 0; right: 0; height: 100%; object-fit: cover; object-position: right; filter: contrast(1.2) sepia(0.2);" src="" alt="Sketch">
+                </div>
+                <!-- Slider Handle -->
+                <div class="sketch-slider-handle" id="sketch-slider-handle" style="background: #111; box-shadow: 0 0 20px rgba(0,0,0,0.4);">⇹</div>
+            </div>
+            
+            <!-- Default Placeholder before generation -->
+            <div id="sketch-placeholder" style="width: 100%; height: 60vh; background: #fff; border-radius: 2px; border: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: center; color: #bbb; flex-direction: column; gap: 15px;">
+                <span style="font-family: var(--font-display); font-size: 2rem; letter-spacing: 4px;">空白画布</span>
+                <span style="font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;">Awaiting Ink & Brush</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         VIEW 4: ANALYTICS (Model Parsing)
+         ========================================== -->
+    <div class="view-container" id="view-analytics">
+        <!-- Interactive Canvas Background -->
+        <canvas id="analytics-canvas-bg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: auto;"></canvas>
+        
+        <!-- Left Panel: Intro -->
+        <div class="left-panel" style="width: 35%;">
+            <div class="watermark" style="font-size: 15vw; top: 10%; color: rgba(239, 68, 68, 0.03);">DATA</div>
+            <h2 style="font-family: var(--font-display); font-size: 3rem; margin-bottom: 20px; color: #ef4444;">模型解析</h2>
+            <h4 style="color: #888; font-weight: normal; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 30px;">Cognitive Dynamics</h4>
+            <p style="margin-bottom: 30px; color: #666; line-height: 1.8;">
+                深度学习不应是盲目的黑盒。我们记录了 Holo-MobileNetV3 在各个网络层级的特征提取过程，以及在复杂损失地貌中寻找“流派转换走廊”的动态轨迹。
+            </p>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div class="style-pill" onclick="renderChart('layer')">层级认知扫描 (Layer Scan)</div>
+                <div class="style-pill" onclick="renderChart('landscape')">全息能量峡谷 (Holo Landscape)</div>
+                <div class="style-pill" onclick="renderChart('wormhole')">动态流派走廊 (Wormhole)</div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Interactive Plotly Charts -->
+        <div class="right-panel" style="width: 65%; display: flex; align-items: center; justify-content: center; padding: 40px;">
+            <div id="plotly-chart-container" style="width: 100%; height: 80vh; background: #fff; border-radius: 8px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); padding: 20px; transition: opacity 0.4s ease;">
+                <!-- Chart will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         4. Pop-up Card Modal (Dynamic Content)
+         ========================================== -->
+    <div class="modal" id="modal">
+        <div class="modal-card">
+            <!-- 容器一：建筑详情 -->
+            <div id="modal-arch-content" style="display: none;">
+                <div class="modal-header">
+                    <h2 id="modal-title-zh">北京官式琉璃瓦</h2>
+                    <h4 id="modal-title-en">Beijing Official Glazed Tile</h4>
+                </div>
+                <p id="modal-desc">典型特征为黄琉璃瓦、重檐庑殿顶、繁复的斗拱结构，彰显皇家威仪。线条平直严谨，构图讲究对称中正。</p>
+                <div class="insight-box">
+                    <strong style="color: #1b00ff; display: block; margin-bottom: 5px; font-size: 0.85em; letter-spacing: 1px;">AI COGNITIVE INSIGHT</strong>
+                    <span id="modal-insight">在浅层网络中，密集的瓦片纹理引发极高的解析应力（Psi4 飙升）；随着网络加深，物理细节坍缩，迅速收敛至“皇家规范”的低能抽象状态。</span>
+                </div>
+            </div>
+
+            <!-- 容器二：21流派列表 -->
+            <div id="modal-list-content" style="display: none;">
+                <div class="modal-header">
+                    <h2>21 Architectural Styles</h2>
+                    <h4>涵盖中国九大核心地域建筑流派</h4>
+                </div>
+                <p>Holo-Arch 引擎支持对以下所有建筑风格进行超细粒度的谱系识别与分析：</p>
+                <div class="style-list" id="style-list-container">
+                    <!-- JS 填充 -->
+                </div>
+            </div>
+
+            <!-- 容器三：硬核数学推导 -->
+            <div id="modal-math-content" style="display: none;">
+                <div class="modal-header">
+                    <h2>Holomorphic Logic Isomorphism</h2>
+                    <h4>全纯逻辑同构与解析应力 Ψ</h4>
+                </div>
+                <p>模型的认知过程，是一片可走进去的山河。每一处陡峭，是难辨的流派边界；每一条走廊，是隐匿的风格亲缘。<br><br>
+                我们将神经网络映射至复数域 <span style="font-family: serif; font-style: italic;">C</span>，利用柯西积分公式 (Cauchy's Integral Formula) 进行复步采样，无截断误差地提取高阶导数：</p>
+                
+                <div class="math-box">
+                    <span class="math-highlight"># 1. 柯西积分理论极限</span><br>
+                    f⁽ⁿ⁾(z₀) = (n! / 2πi) ∮ [f(z) / (z - z₀)ⁿ⁺¹] dz<br><br>
+                    
+                    <span class="math-highlight"># 2. 离散化 2D FFT 复步采样</span><br>
+                    zₘ = z₀ + r·exp(i·2πm/M)<br>
+                    Ψₖ ≈ (1/M) · Σ [ L(zₘ) · exp(-i·2πkm/M) ]<br><br>
+
+                    <span class="math-highlight"># 3. 物理含义映射</span><br>
+                    <span style="color:#f87171;">Ψ₁ (Gradient):</span> 四合院的围墙边界阻力<br>
+                    <span style="color:#fbbf24;">Ψ₂ (Hessian):</span> 官式飞檐的曲率变化<br>
+                    <span style="color:#34d399;">Ψ₄ (Ruggedness):</span> 藏式墙上风霜凝成的极端认知应力
+                </div>
+            </div>
+
+            <!-- 容器四：什么是界画 -->
+            <div id="modal-jiehua-content" style="display: none;">
+                <div class="modal-header">
+                    <h2>什么是界画？</h2>
+                    <h4>Jiehua: Traditional Chinese Architectural Painting</h4>
+                </div>
+                <p><strong>界画 (Jiehua)</strong> 是中国传统绘画中一种独具特色的门类。因在作画时使用界尺引线，故名“界画”。</p>
+                <p>它的主要表现对象是亭台楼阁、舟车桥梁等人工建筑物。与写意山水画的挥洒自如不同，界画要求<strong>极其严谨的透视与比例</strong>，讲究“折算无亏”，必须符合建筑的物理结构与榫卯逻辑。</p>
+                <div class="insight-box">
+                    <strong style="color: #1b00ff; display: block; margin-bottom: 5px; font-size: 0.85em; letter-spacing: 1px;">在古建筑中的作用</strong>
+                    <span style="display: block; margin-bottom: 8px;"><strong>1. 建筑图纸的雏形：</strong>在古代，界画常被用作建筑施工的参考图或落成后的写真记录，保留了大量已消失建筑的精确结构（如《清明上河图》中的虹桥）。</span>
+                    <span style="display: block;"><strong>2. 理性与感性的融合：</strong>它将冰冷的建筑几何线条，融入到烟波浩渺的传统水墨山水之中，体现了古人“天人合一”的审美哲学。本系统正是利用傅里叶高频滤波，剥离现代光影，重现这种跨越千年的线稿骨架。</span>
+                </div>
+            </div>
+            
+            <button class="close-btn" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Interactive Scripts -->
+    <script>
+        // --- View Switching Logic ---
+        function switchView(viewName) {
+            // Update nav active state
+            document.querySelectorAll('.nav-links li').forEach(li => li.classList.remove('active-nav'));
+            event.target.classList.add('active-nav');
+            
+            // Hide all views
+            document.querySelectorAll('.view-container').forEach(view => {
+                view.classList.remove('active-view');
+                // Force display none after transition to avoid layout issues
+                setTimeout(() => {
+                    if (!view.classList.contains('active-view')) {
+                        view.style.display = 'none';
+                    }
+                }, 800);
+            });
+            
+            // Remove previous body view classes
+            document.body.className = document.body.className.replace(/view-[a-z]+-active/g, '').trim();
+            
+            // Show target view
+            const targetView = document.getElementById(`view-${viewName}`);
+            if (targetView) {
+                targetView.style.display = 'flex'; // Ensure display is block before adding active class for transition
+                // small delay to allow display: flex to apply before opacity transition
+                setTimeout(() => {
+                    targetView.classList.add('active-view');
+                    document.body.classList.add(`view-${viewName}-active`);
+                }, 10);
+            }
+            
+            // Load default chart if analytics view
+            if (viewName === 'analytics') {
+                renderChart('layer');
+            }
+            
+            // Close menu
+            toggleMenu();
+        }
+
+        // --- Hamburger & Overlay Logic ---
+        function toggleMenu() {
+            document.body.classList.toggle('menu-open');
+            document.querySelector('.menu-btn').classList.toggle('active');
+            document.getElementById('nav').classList.toggle('active');
+            
+            // Fix for blue background bug: When menu is closed, remove the blue background override
+            if(!document.body.classList.contains('menu-open')) {
+                document.body.style.background = '';
+            }
+        }
+
+        // Modal Logic
+        function hideAllModalContent() {
+            document.getElementById('modal-arch-content').style.display = 'none';
+            document.getElementById('modal-list-content').style.display = 'none';
+            document.getElementById('modal-math-content').style.display = 'none';
+            document.getElementById('modal-jiehua-content').style.display = 'none';
+        }
+
+        const archContentMap = {
+            "台湾闽南古厝": {
+                desc: "典型特征为燕尾脊、红砖墙，装饰富丽精巧，注重家族祭祀空间，极具闽南文化底蕴。",
+                insight: "模型对‘燕尾脊’的陡峭曲线极其敏感，在特征提取初期产生显著的 Hessian 响应（Psi2 峰值），随后与红砖的色彩张量发生高阶耦合，形成独特的闽南特征景观。"
+            },
+            "东北民居": {
+                desc: "典型特征为火炕、双层窗、厚重外墙，建筑布局紧凑，极好地适应了严寒漫长的冬季气候。",
+                insight: "厚重外墙与小窗的对比导致网络视野中低频分量占据主导。这种‘防寒封闭’的结构在特征空间中呈现为一种低曲率、高密度的内向拓扑形态。"
+            },
+            "湖北武当山古建筑群": {
+                desc: "典型特征为依崖而建、金碧辉煌，布局随山就势，充分展现道教建筑的清幽与仙道境界。",
+                insight: "人工建筑与自然悬崖的镶嵌使得网络在边缘检测时遭遇‘软边界’挑战；深层网络通过提取‘顺势而为’的全局结构特征，跨越了复杂的局部梯度势垒。"
+            },
+            "北京官式琉璃瓦": {
+                desc: "典型特征为黄琉璃瓦、重檐庑殿顶、斗拱繁复，对称中正，尽显严谨威严的皇家气派。",
+                insight: "在浅层网络中，密集的瓦片纹理引发极高的解析应力（Psi4 飙升）；随着网络加深，物理细节坍缩，迅速收敛至“皇家规范”的低能抽象状态。"
+            },
+            "北京四合院": {
+                desc: "典型特征为院落方正、对称布局，空间静谧隐秘，体现老北京温婉含蓄的居住生活哲学。",
+                insight: "其方正对称的平面布局在模型的卷积核滑窗中引发强烈的相位对齐效应；深层网络中的‘四合’特征体现为极具秩序感的闭合梯度环。"
+            },
+            "内蒙古传统毡房": {
+                desc: "典型特征为圆形毡帐、易于拆卸，适应游牧生活，顶端通风天窗，展现草原民族的智慧。",
+                insight: "毡房的纯粹球顶与周遭平坦的草原背景形成极简的二元分类信号，网络仅需极低的计算应力即可完成全息提取，呈现出最平滑的解析景观。"
+            },
+            "福建客家土楼": {
+                desc: "典型特征为圆形或方形堡垒式布局，土墙厚重，内含天井与公共空间，防御与团圆并存。",
+                insight: "环形几何结构在模型的低频分量中产生强烈的循环同构共振；巨大的体量与内部复杂的木构形成了高频与低频相互交织的复杂解析景观。"
+            },
+            "江西赣南围屋": {
+                desc: "典型特征为高墙深宅、布局内向，防御性强，聚族而居，体现出宗法制度下的群居文化。",
+                insight: "其如同堡垒般的坚固外墙构成了极强的抗干扰屏障，网络在提取时表现出对‘围合’边界的绝对专注，屏蔽了大部分环境噪声。"
+            },
+            "山东胶东海草房": {
+                desc: "典型特征为厚重海草覆盖屋顶，墙体石块垒砌，抗风耐候，具有浓郁的胶东渔家生活气息。",
+                insight: "海草屋顶极度不规则的毛糙纹理在浅层网络中造成严重的特征散射；但模型最终依靠整体的‘钝角三角形’宏观轮廓完成了从混乱到秩序的降维打击。"
+            },
+            "河南地坑院": {
+                desc: "典型特征为“进村不见房，见树不见村”，地下天井式建筑，冬暖夏凉，极具独特的空间奇观。",
+                insight: "这是一种‘负空间’建筑。模型必须反转常规的‘地平线向上’认知逻辑，通过捕捉地表断层与向下凹陷的阴影张量来完成风格锚定。"
+            },
+            "湖南湘西吊脚楼": {
+                desc: "典型特征为小青瓦、坡屋顶，室内多设天井，通风采光良好，建筑色调素雅，质朴亲和。",
+                insight: "其悬挑结构与不规则的立柱支撑在网络中段激发出强烈的非对称张量响应；底层与高层的错落对比引发了层级认知扫描中的特征分化，突显了建筑对环境的自适应解析特性。"
+            },
+            "广东岭南骑楼": {
+                desc: "典型特征为楼下通廊、外墙装饰西化，兼具商铺与居住功能，是中西合璧的现代都市骑楼。",
+                insight: "模型在处理其底层的‘柱廊空间’时，侦测到强烈的周期性透视规律；同时，立面上繁复的中西混合雕花引发了特征通道的跨文化高频震荡。"
+            },
+            "广西三江风雨桥": {
+                desc: "典型特征为吊脚楼、鼓楼、风雨桥，木构榫卯精妙，展现侗族聚落的民族特色与生态景观。",
+                insight: "桥身水平延伸的轴线与桥亭垂直耸立的塔尖形成了正交的受力结构。网络在处理这种‘穿插交错’时，展现出了多维特征融合的超常能力。"
+            },
+            "云南傣族竹楼": {
+                desc: "典型特征为高脚竹楼、坡屋顶，底层架空通风防潮，体现人与热带自然环境的和谐共生。",
+                insight: "大面积的底层架空促使模型将注意力转移至‘纤细的支撑结构’与‘轻盈的屋盖’，这种‘悬浮感’在特征分布上表现为低密度的离散矩阵。"
+            },
+            "陕西陕北窑洞": {
+                desc: "典型特征为依山就势、拱形洞口，具有冬暖夏凉的居住舒适感，是黄土高原建筑的智慧结晶。",
+                insight: "连续的半圆拱券引发了网络对曲线边缘的反复拟合；黄土背景与建筑本体高度融合的色彩使得网络更依赖几何深度（Depth）而非色彩来判断。"
+            },
+            "安徽徽派民居": {
+                desc: "典型特征为粉墙黛瓦、马头墙高耸，木雕精细，体现“依山傍水，错落有致”的雅致氛围。",
+                insight: "高耸的马头墙如同锐利的阶梯函数，在网络的边缘激活层切出清晰的黑白断层；‘粉墙黛瓦’的极简配色大幅降低了色彩通道的解析应力。"
+            },
+            "四川川西碉堡": {
+                desc: "典型特征为穿斗式构架、坡屋顶，空间开敞灵活，充分体现顺应地形的独特山地建筑风格。",
+                insight: "其顺应山势的高低错落打断了常规的水平对称认知；模型转而依赖‘穿斗式木构’暴露在外的线型骨架，构建出了一套倾斜的特征坐标系。"
+            },
+            "西藏藏式碉房": {
+                desc: "典型特征为石木结构、平顶、墙壁上窄下宽，外观坚固厚重，极具高寒地区的防御与保暖特性。",
+                insight: "网络在浅层感受到粗糙石壁纹理的极大摩擦力，但在深层迅速抽象为稳定的几何结构，其厚重的梯形墙体在层级扫描中表现为极低的解析波动率。"
+            },
+            "苏式园林建筑": {
+                desc: "典型特征为曲径通幽、叠石理水，体现“虽由人作，宛自天开”的江南诗意空间美学。",
+                insight: "建筑、假山与水面形成的‘图底反转’（Figure-Ground）关系对模型构成了巨大挑战；网络被迫采用非线性跳跃连接来跨越这种极度复杂的空间渗透。"
+            },
+            "新疆阿以旺式民居": {
+                desc: "典型特征为平顶、土墙、窗户较小，适应干旱多风气候，色彩简洁，充满异域风情。",
+                insight: "土墙与沙漠背景的色彩同化使得模型放弃了颜色特征，转而通过识别平顶上独特的‘阿以旺’（天窗）结构来确立分类置信度。"
+            },
+            "山西晋商大院": {
+                desc: "典型特征为深宅大院、高墙窄窗，砖雕木刻精美，布局严谨，展现豪宅大院的防御功能。",
+                insight: "高耸的院墙构成了封闭的视觉屏障，引导网络注意力集中于屋脊与繁复精美的砖雕。这使得高频局部特征与低频宏观封闭性形成了奇妙的对立统一。"
+            }
+        };
+
+        function openModal(titleZH, titleEN) {
+            hideAllModalContent();
+            document.getElementById('modal-title-zh').innerText = titleZH;
+            document.getElementById('modal-title-en').innerText = titleEN;
+            
+            // 动态更新建筑描述与解析文本
+            const content = archContentMap[titleZH] || {
+                desc: "该建筑流派历史悠久，具有鲜明的地域特色和深厚的文化底蕴，体现了传统工匠高超的建筑技艺与自然环境的和谐共生。",
+                insight: "模型在处理该建筑特征时，提取到了独特的纹理与几何轮廓，随着特征传递至深层网络，形成了稳定的流派聚类与低能抽象状态。"
+            };
+            document.getElementById('modal-desc').innerText = content.desc;
+            document.getElementById('modal-insight').innerText = content.insight;
+
+            document.getElementById('modal-arch-content').style.display = 'block';
+            document.getElementById('modal').classList.add('active');
+        }
+        
+        function openStyleListModal() {
+            hideAllModalContent();
+            document.getElementById('modal-list-content').style.display = 'block';
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function openMathModal() {
+            hideAllModalContent();
+            document.getElementById('modal-math-content').style.display = 'block';
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function openJiehuaModal() {
+            hideAllModalContent();
+            document.getElementById('modal-jiehua-content').style.display = 'block';
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        // Populate Images from FastAPI backend
+        const gallery = document.getElementById('gallery');
+        const styleListContainer = document.getElementById('style-list-container');
+
+        async function fetchAndPopulate() {
+            try {
+                const response = await fetch('/api/styles');
+                const data = await response.json();
+                
+                if(data.styles && data.styles.length > 0) {
+                    const styles = data.styles;
+                    
+                    // Populate Gallery
+                    // Multiply array to simulate infinite scroll
+                    const displayStyles = [...styles, ...styles.slice(0, 5)];
+                    
+                    displayStyles.forEach((style) => {
+                        let item = document.createElement('div');
+                        item.className = 'gallery-item';
+                        
+                        item.innerHTML = `
+                            <img class="gallery-img" src="${style.image_b64}" alt="${style.zh}">
+                            <div class="item-overlay">
+                                <div class="item-label">${style.zh}</div>
+                            </div>
+                        `;
+                        item.onclick = () => openModal(style.zh, style.en);
+                        gallery.appendChild(item);
+                    });
+                    
+                    // Populate the modal list
+                    styles.forEach((style) => {
+                        let pill = document.createElement('div');
+                        pill.className = 'style-pill';
+                        pill.innerText = style.zh;
+                        pill.onclick = () => openModal(style.zh, style.en);
+                        styleListContainer.appendChild(pill);
+                    });
+                    
+                } else {
+                    console.error("No styles returned or error:", data);
+                }
+            } catch (err) {
+                console.error("Error fetching from API:", err);
+            }
+        }
+        
+        // Call it on load
+        fetchAndPopulate();
+
+        // Auto-Scroll Logic for the Right Panel
+        const rightPanel = document.getElementById('gallery-container');
+        let scrollSpeed = 0.6; // Slower, more elegant scroll
+        let isHovering = false;
+
+        // Pause scroll on hover so user can click
+        rightPanel.addEventListener('mouseenter', () => isHovering = true);
+        rightPanel.addEventListener('mouseleave', () => isHovering = false);
+
+        // Scroll Loop
+        setInterval(() => {
+            if (!isHovering) {
+                rightPanel.scrollTop += scrollSpeed;
+                // Seamless loop check
+                if (rightPanel.scrollTop + rightPanel.clientHeight >= rightPanel.scrollHeight - 2) {
+                    rightPanel.scrollTop = 0;
+                }
+            }
+        }, 16); // ~60fps
+
+        // Left Panel Interactive Parallax & Glow
+        const leftPanel = document.getElementById('left-panel');
+        const glow = document.getElementById('glow');
+        const watermark = document.getElementById('watermark');
+        const textContent = document.getElementById('text-content');
+
+        leftPanel.addEventListener('mousemove', (e) => {
+            const rect = leftPanel.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Move Glow
+            glow.style.left = `${x}px`;
+            glow.style.top = `${y}px`;
+
+            // Calculate Mouse Parallax Ratio (-0.5 to 0.5)
+            const xRatio = (x / rect.width) - 0.5;
+            const yRatio = (y / rect.height) - 0.5;
+
+            // Subtle Parallax Effect (Watermark moves opposite to text)
+            watermark.style.transform = `translate(${xRatio * -30}px, ${yRatio * -30}px)`;
+            textContent.style.transform = `translateZ(30px) translate(${xRatio * 10}px, ${yRatio * 10}px) rotateY(${xRatio * 5}deg) rotateX(${yRatio * -5}deg)`;
+        });
+
+        leftPanel.addEventListener('mouseleave', () => {
+            // Reset
+            watermark.style.transform = `translate(0px, 0px)`;
+            textContent.style.transform = `translateZ(30px) translate(0px, 0px) rotateY(0deg) rotateX(0deg)`;
+        });
+
+        // --- Holo Radar (Inference) Logic ---
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const previewImg = document.getElementById('preview-img');
+        const scanLine = document.getElementById('scan-line');
+        const resultBox = document.getElementById('inference-result');
+
+        // Drag and Drop events
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = "var(--brand-blue)"; });
+        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = "#ccc"; });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = "#ccc";
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect({target: fileInput});
+            }
+        });
+
+        async function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                previewImg.style.display = 'block';
+                document.querySelector('.upload-icon').style.display = 'none';
+                document.querySelector('.upload-text').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+
+            // Start animation
+            scanLine.style.display = 'block';
+            
+            // 隐藏默认的占位背景，显示结果容器
+            document.getElementById('radar-placeholder').style.display = 'none';
+            resultBox.style.display = 'block';
+            
+            resultBox.classList.remove('active');
+            resultBox.innerHTML = `<h3 style="font-family: var(--font-display); font-size: 2rem; color: var(--brand-blue);">Initializing HoloPGF Engine...</h3><p>Computing Cauchy FFT and extracting high-order analytical stress...</p>`;
+            resultBox.classList.add('active');
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/predict', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                scanLine.style.display = 'none';
+
+                if (data.error) {
+                    resultBox.innerHTML = `<h3 style="color: red;">Engine Error</h3><p>${data.error}</p>`;
+                    return;
+                }
+
+                // Render Result
+                const pred = data.prediction;
+                const stress = data.psi4_stress;
+                
+                resultBox.style.opacity = 0;
+                setTimeout(() => {
+                    resultBox.innerHTML = `
+                        <h4 style="color: #999; letter-spacing: 2px; margin-bottom: 10px; text-transform: uppercase;">Cognitive Conclusion</h4>
+                        <h2 style="font-family: var(--font-display); font-size: 3rem; color: var(--brand-blue); margin-bottom: 5px;">${pred.zh}</h2>
+                        <h3 style="font-size: 1.2rem; color: #666; margin-bottom: 30px; font-weight: normal;">${pred.en}</h3>
+                        
+                        <div style="display: flex; gap: 40px; margin-bottom: 30px;">
+                            <div>
+                                <div style="font-size: 0.8rem; color: #999; text-transform: uppercase;">Confidence</div>
+                                <div style="font-size: 2rem; font-weight: bold; color: #111;">${(pred.confidence * 100).toFixed(2)}%</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.8rem; color: #999; text-transform: uppercase;">Analytical Stress (Ψ₄)</div>
+                                <div style="font-size: 2rem; font-weight: bold; color: #ef4444;">${stress.toExponential(2)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="insight-box" style="margin-top: 0; background: #fff; border: 1px solid #eee;">
+                            <strong style="color: var(--brand-blue); display: block; margin-bottom: 5px; font-size: 0.85em; letter-spacing: 1px;">HoloPGF Engine Log</strong>
+                            <span>The Holomorphic landscape scanning completed successfully. The spectral ruggedness metric (Ψ₄ = ${stress.toExponential(2)}) indicates the network's cognitive resistance when resolving the high-frequency structural elements of this architecture.</span>
+                        </div>
+                        
+                        <button class="close-btn" style="margin-top: 30px; padding: 10px 30px; border-color: var(--brand-blue); color: var(--brand-blue);" onclick="openModal('${pred.zh}', '${pred.en}')">查看流派解析 (View Full Report)</button>
+                    `;
+                    resultBox.style.opacity = 1;
+                }, 500);
+
+            } catch (err) {
+                scanLine.style.display = 'none';
+                resultBox.innerHTML = `<h3 style="color: red;">Network Error</h3><p>${err.message}</p>`;
+            }
+        }
+
+        // --- Holo Sketch (Aesthetics) Logic ---
+        const sketchInput = document.getElementById('sketch-file-input');
+        const sketchDrop = document.getElementById('sketch-drop-zone');
+        const sketchScanLine = document.getElementById('sketch-scan-line');
+        const sketchStatus = document.getElementById('sketch-status');
+        
+        const sketchSliderContainer = document.getElementById('sketch-slider-container');
+        const sketchPlaceholder = document.getElementById('sketch-placeholder');
+        const sketchOrigImg = document.getElementById('sketch-orig-img');
+        const sketchResultImg = document.getElementById('sketch-result-img');
+        const sketchOverlayContainer = document.getElementById('sketch-overlay-container');
+        const sketchSliderHandle = document.getElementById('sketch-slider-handle');
+
+        sketchDrop.addEventListener('dragover', (e) => { e.preventDefault(); sketchDrop.style.borderColor = "var(--brand-blue)"; });
+        sketchDrop.addEventListener('dragleave', () => { sketchDrop.style.borderColor = "rgba(22, 0, 230, 0.3)"; });
+        sketchDrop.addEventListener('drop', (e) => {
+            e.preventDefault();
+            sketchDrop.style.borderColor = "rgba(22, 0, 230, 0.3)";
+            if (e.dataTransfer.files.length) {
+                sketchInput.files = e.dataTransfer.files;
+                handleSketchFileSelect({target: sketchInput});
+            }
+        });
+
+        async function handleSketchFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Load Original Image into Slider
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                sketchOrigImg.src = e.target.result;
+                // 清空之前的结果图片
+                sketchResultImg.src = "";
+                // 立即显示容器并隐藏 Placeholder
+                sketchPlaceholder.style.display = 'none';
+                sketchSliderContainer.style.display = 'block';
+                
+                // 将滑块重置到最右侧 (0%)，这样只显示原图
+                sketchOverlayContainer.style.width = `0%`;
+                sketchSliderHandle.style.right = `0%`;
+                sketchSliderHandle.style.display = 'none'; // 生成中隐藏滑块
+            };
+            reader.readAsDataURL(file);
+
+            // UI Updates
+            sketchScanLine.style.display = 'block';
+            sketchStatus.innerText = "Applying 2D FFT & Band-pass filter...";
+            
+            // 更新文字提示，而不是显示原生的文件名
+            const uploadText = document.getElementById('sketch-upload-text');
+            if(uploadText) {
+                uploadText.innerText = `已选择: ${file.name}`;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/sketch', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                sketchScanLine.style.display = 'none';
+                if (data.error) {
+                    sketchStatus.innerText = "Error: " + data.error;
+                    return;
+                }
+                
+                sketchStatus.innerText = "Jiehua Sketch Generated.";
+                sketchResultImg.src = data.sketch_b64;
+                
+                // 恢复滑块显示
+                sketchSliderHandle.style.display = 'flex';
+                
+                // 确保结果图片宽度始终与容器保持一致，以实现遮罩裁切效果
+                const containerWidth = sketchSliderContainer.offsetWidth;
+                sketchResultImg.style.width = `${containerWidth}px`;
+                
+                // 动画：将滑块移动到中间 (50%)，展示水墨效果
+                setTimeout(() => {
+                    sketchOverlayContainer.style.transition = 'width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    sketchSliderHandle.style.transition = 'right 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    
+                    sketchOverlayContainer.style.width = '50%';
+                    sketchSliderHandle.style.right = '50%';
+                    
+                    // 动画结束后，清除 transition 以免影响拖拽
+                    setTimeout(() => {
+                        sketchOverlayContainer.style.transition = 'width 0.1s';
+                        sketchSliderHandle.style.transition = 'right 0.1s';
+                    }, 800);
+                }, 100);
+
+            } catch (err) {
+                sketchScanLine.style.display = 'none';
+                sketchStatus.innerText = "Network Error: " + err.message;
+            }
+        }
+
+        // Image Slider Drag Logic
+        let isDraggingSlider = false;
+        sketchSliderHandle.addEventListener('mousedown', (e) => {
+            isDraggingSlider = true;
+            e.preventDefault(); // 阻止默认点击事件，避免选中元素
+        });
+        window.addEventListener('mouseup', () => isDraggingSlider = false);
+        window.addEventListener('mousemove', (e) => {
+            if (!isDraggingSlider) return;
+            e.preventDefault(); // 阻止滑动过程中的默认选中行为
+            const rect = sketchSliderContainer.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            x = Math.max(0, Math.min(x, rect.width)); // Clamp
+            
+            const percentage = ((rect.width - x) / rect.width) * 100;
+            sketchOverlayContainer.style.width = `${percentage}%`;
+            sketchSliderHandle.style.right = `${percentage}%`;
+            
+            // 确保结果图片宽度始终与容器保持一致，以实现遮罩裁切效果
+            sketchResultImg.style.width = `${rect.width}px`;
+        });
+
+        // --- Analytics (Plotly) Logic ---
+        async function renderChart(type) {
+            const container = document.getElementById('plotly-chart-container');
+            
+            // 只有当用户确实点击的是左侧面板的 style-pill 时，才应用蓝色高亮
+            // 这样避免在切换导航栏时，误将导航栏的 <li> 文本颜色染成深蓝色而看不清
+            if (event && event.target && event.target.classList.contains('style-pill')) {
+                document.querySelectorAll('.style-pill').forEach(p => {
+                    if (p.parentNode.closest('.left-panel') && p.parentNode.style.flexDirection === 'column') {
+                        p.style.borderColor = '#ddd';
+                        p.style.color = '#555';
+                        p.style.background = 'transparent';
+                        p.style.transform = 'translateY(0)';
+                        p.style.boxShadow = 'none';
+                    }
+                });
+                event.target.style.borderColor = 'var(--brand-blue)';
+                event.target.style.color = 'var(--brand-blue)';
+                event.target.style.background = 'rgba(22, 0, 230, 0.03)';
+                event.target.style.transform = 'translateY(-2px)';
+                event.target.style.boxShadow = '0 5px 15px rgba(22, 0, 230, 0.08)';
+            } else if (type === 'layer') {
+                // 如果是程序自动触发加载（比如从导航栏刚切入解析视图），则手动高亮第一个选项卡
+                document.querySelectorAll('#view-analytics .style-pill').forEach((p, index) => {
+                    if (index === 0) {
+                        p.style.borderColor = 'var(--brand-blue)';
+                        p.style.color = 'var(--brand-blue)';
+                        p.style.background = 'rgba(22, 0, 230, 0.03)';
+                        p.style.transform = 'translateY(-2px)';
+                        p.style.boxShadow = '0 5px 15px rgba(22, 0, 230, 0.08)';
+                    } else {
+                        p.style.borderColor = '#ddd';
+                        p.style.color = '#555';
+                        p.style.background = 'transparent';
+                        p.style.transform = 'translateY(0)';
+                        p.style.boxShadow = 'none';
+                    }
+                });
+            }
+
+            let data, layout;
+            
+            const commonLayout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'var(--font-sans)', size: 12, color: '#666' },
+                margin: { t: 60, b: 40, l: 60, r: 60 },
+                colorway: ['#1600e6', '#ef4444', '#f59e0b', '#10b981'] // 匹配品牌色
+            };
+
+            // 统一的坐标轴样式，去除多余线条，保持极简
+            const commonAxis = {
+                showgrid: true,
+                gridcolor: 'rgba(0,0,0,0.05)',
+                zeroline: false,
+                showline: false,
+                tickfont: { color: '#999' },
+                titlefont: { size: 13, color: '#555', family: 'var(--font-sans)' }
+            };
+
+            if (type === 'layer') {
+                container.style.opacity = 0;
+                
+                const layers = ["Block 1", "Block 2", "Block 3", "Block 4", "Block 5", "Classifier"];
+                const abstraction = [10, 35, 60, 85, 95, 99];
+                const stress = [100, 75, 45, 20, 5, 1];
+                
+                data = [
+                    { x: layers, y: abstraction, type: 'bar', name: '语义抽象度 (%)', marker: { color: 'rgba(22, 0, 230, 0.7)', opacity: 1, border: {width: 0} } },
+                    { x: layers, y: stress, type: 'scatter', mode: 'lines+markers', name: '解析应力 (Ψ₄)', yaxis: 'y2', line: { color: '#ef4444', width: 3 }, marker: { size: 6 } }
+                ];
+                layout = { ...commonLayout, 
+                    title: { text: "Layer-wise Feature Extraction (像素纹理到流派语义)", font: { size: 18, color: '#111', family: 'var(--font-display)' } },
+                    xaxis: { ...commonAxis, title: "网络层级" },
+                    yaxis: { ...commonAxis, title: "语义抽象度 (%)", side: 'left' },
+                    yaxis2: { ...commonAxis, title: "解析应力", overlaying: 'y', side: 'right', showgrid: false },
+                    hovermode: 'x unified', legend: { orientation: 'h', y: 1.05, font: { color: '#666' } }
+                };
+                
+                // 渲染图表
+                Plotly.newPlot(container, data, layout, {displayModeBar: false, responsive: true});
+                
+                setTimeout(() => container.style.opacity = 1, 50);
+            } 
+            else if (type === 'landscape') {
+                // 先清空容器并添加淡出动画类
+                container.style.opacity = 0;
+                
+                try {
+                    const response = await fetch('/api/analytics/landscape');
+                    const lData = await response.json();
+                    
+                    if (lData.error) {
+                        container.innerHTML = `<div style="color:red; padding:20px;">Error loading data: ${lData.error}</div>`;
+                        container.style.opacity = 1;
+                        return;
+                    }
+                    
+                    // The 3D Surface
+                    const surfaceTrace = {
+                        x: lData.x,
+                        y: lData.y,
+                        z: lData.z,
+                        type: 'surface',
+                        colorscale: 'Jet',
+                        opacity: 0.8,
+                        showscale: false, // hide colorbar to keep it clean like reference
+                        contours: {
+                            z: {
+                                show: true,
+                                usecolormap: true,
+                                highlightcolor: "limegreen",
+                                project: { z: true } // project contours to the bottom
+                            }
+                        }
+                    };
+                    
+                    // The 3D Trajectory
+                    const trajectoryTrace = {
+                        x: lData.traj_x,
+                        y: lData.traj_y,
+                        z: lData.traj_z.map(z => z + 0.05), // slightly above surface
+                        type: 'scatter3d',
+                        mode: 'lines',
+                        name: 'Optimization Trajectory',
+                        line: {
+                            color: 'dimgray',
+                            width: 6
+                        }
+                    };
+                    
+                    data = [surfaceTrace, trajectoryTrace];
+                    
+                    layout = { ...commonLayout, 
+                        title: { text: "Holo-PGF: Global Analytical Landscape (SGD Mode)", font: { size: 18, color: '#111', family: 'var(--font-display)' } },
+                        scene: { 
+                            xaxis: { title: "Parameter Space Direction v1", backgroundcolor: "transparent", showbackground: false, gridcolor: 'rgba(0,0,0,0.1)' }, 
+                            yaxis: { title: "Parameter Space Direction v2", backgroundcolor: "transparent", showbackground: false, gridcolor: 'rgba(0,0,0,0.1)' }, 
+                            zaxis: { title: "log10(Analytical Potential Energy)", backgroundcolor: "transparent", showbackground: false, gridcolor: 'rgba(0,0,0,0.1)' },
+                            camera: {
+                                eye: {x: 1.0, y: 1.0, z: 0.5} // 调近相机距离，使图表更大更清晰
+                            }
+                        },
+                        showlegend: false
+                    };
+                    
+                    Plotly.newPlot(container, data, layout, {displayModeBar: false, responsive: true});
+                    
+                    // 渲染完成后淡入
+                    setTimeout(() => container.style.opacity = 1, 50);
+                } catch (e) {
+                    container.innerHTML = `<div style="color:red; padding:20px;">Network Error: ${e.message}</div>`;
+                    container.style.opacity = 1;
+                }
+            }
+            else if (type === 'wormhole') {
+                container.style.opacity = 0;
+                
+                try {
+                    const response = await fetch('/api/analytics/corridor');
+                    const cData = await response.json();
+                    
+                    if (cData.error) {
+                        container.innerHTML = `<div style="color:red; padding:20px;">Error loading data: ${cData.error}</div>`;
+                        container.style.opacity = 1;
+                        return;
+                    }
+                    
+                    // Construct a 2D landscape for the contour plot
+                    // We use the 1D data to extrude a 2D surface: A ridge (high stress) and a valley (low stress shortcut)
+                    const x_len = cData.t.length;
+                    let z_surface = [];
+                    let y_vals = [];
+                    for(let j=-15; j<15; j++) {
+                        y_vals.push(j * 0.05);
+                        let row = [];
+                        for(let i=0; i<x_len; i++) {
+                            // Interpolate smoothly between linear path (center) and corridor path (offset)
+                            const center_val = cData.tas_linear[i];
+                            const side_val = cData.tas_corridor[i];
+                            // Simulate a valley on one side
+                            let val = center_val;
+                            if (j < 0) {
+                                // Valley side
+                                const mix = Math.exp(-Math.pow(j+10, 2)/20); // valley bottom around j=-10
+                                val = center_val * (1-mix) + side_val * mix;
+                            } else {
+                                // Hill side
+                                val = center_val + j * 0.05;
+                            }
+                            row.push(val);
+                        }
+                        z_surface.push(row);
+                    }
+                    
+                    // The 2D Contour Map (Heatmap with contour lines)
+                    const contourTrace = {
+                        x: cData.t,
+                        y: y_vals,
+                        z: z_surface,
+                        type: 'contour',
+                        colorscale: 'Jet',
+                        contours: {
+                            showlines: true,
+                            coloring: 'heatmap'
+                        },
+                        colorbar: {
+                            title: 'Analytical Stress (TAS)',
+                            titleside: 'right',
+                            titlefont: { size: 12, family: 'var(--font-sans)', color: '#666' },
+                            tickfont: { size: 10, color: '#999' }
+                        }
+                    };
+                    
+                    // Linear Path (High Stress) - Goes straight through the ridge
+                    const linearTrace = {
+                        x: cData.t,
+                        y: cData.t.map(() => 0), // center offset
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Linear Path (High Stress)',
+                        line: { color: 'rgba(0, 0, 0, 0.8)', width: 3, dash: 'dash' }
+                    };
+                    
+                    // Corridor Path (Low Stress Shortcut) - Goes through the valley
+                    const corridorTrace = {
+                        x: cData.t,
+                        y: cData.t.map(() => -0.5), // valley offset
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Analytical Corridor',
+                        line: { color: 'rgba(255, 255, 255, 1)', width: 4 }
+                    };
+                    
+                    data = [contourTrace, linearTrace, corridorTrace];
+                    
+                    layout = { ...commonLayout, 
+                        title: { text: "Mode Connectivity: 2D Analytical Corridor", font: { size: 18, color: '#111', family: 'var(--font-display)' } },
+                        xaxis: { ...commonAxis, title: "Interpolation Step (t)" }, 
+                        yaxis: { ...commonAxis, title: "Relaxation Offset" },
+                        showlegend: true,
+                        legend: { orientation: 'h', y: 1.05, font: { color: '#666' } },
+                        dragmode: 'pan' // 默认鼠标拖拽为平移，禁用框选放大
+                    };
+                    
+                    Plotly.newPlot(container, data, layout, {
+                        displayModeBar: false, 
+                        responsive: true,
+                        scrollZoom: true // 开启滚轮缩放
+                    });
+                    
+                    setTimeout(() => container.style.opacity = 1, 50);
+                } catch (e) {
+                    container.innerHTML = `<div style="color:red; padding:20px;">Network Error: ${e.message}</div>`;
+                    container.style.opacity = 1;
+                }
+            }
+        }
+
+        // --- Interactive Canvas Backgrounds ---
+        class InteractiveBackground {
+            constructor(canvasId, containerId, colorRGB) {
+                this.canvas = document.getElementById(canvasId);
+                if (!this.canvas) return;
+                this.ctx = this.canvas.getContext('2d');
+                this.container = document.getElementById(containerId);
+                this.colorRGB = colorRGB; // e.g., '22, 0, 230'
+                this.particles = [];
+                this.mouse = { x: null, y: null, radius: 150 };
+                this.isActive = false;
+                this.animationId = null;
+
+                this.initEvents();
+            }
+
+            initEvents() {
+                window.addEventListener('resize', () => {
+                    if(this.isActive) {
+                        this.resize();
+                        this.initParticles();
+                    }
+                });
+
+                if (this.container) {
+                    this.container.addEventListener('mousemove', (e) => {
+                        this.mouse.x = e.x;
+                        this.mouse.y = e.y;
+                    });
+                    this.container.addEventListener('mouseleave', () => {
+                        this.mouse.x = null;
+                        this.mouse.y = null;
+                    });
+                }
+            }
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+
+            initParticles() {
+                this.particles = [];
+                let spacing = 35;
+                for (let y = 0; y < this.canvas.height; y += spacing) {
+                    for (let x = 0; x < this.canvas.width; x += spacing) {
+                        let offsetX = (Math.random() - 0.5) * 10;
+                        let offsetY = (Math.random() - 0.5) * 10;
+                        this.particles.push({
+                            x: x + offsetX,
+                            y: y + offsetY,
+                            baseX: x + offsetX,
+                            baseY: y + offsetY,
+                            density: (Math.random() * 30) + 1,
+                            size: Math.random() * 2 + 1
+                        });
+                    }
+                }
+            }
+
+            drawParticle(p) {
+                this.ctx.fillStyle = `rgba(${this.colorRGB}, 0.15)`;
+                this.ctx.beginPath();
+                this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                this.ctx.closePath();
+                this.ctx.fill();
+            }
+
+            updateParticle(p) {
+                if (this.mouse.x != null) {
+                    let dx = this.mouse.x - p.x;
+                    let dy = this.mouse.y - p.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < this.mouse.radius) {
+                        let forceDirectionX = dx / distance;
+                        let forceDirectionY = dy / distance;
+                        let maxDistance = this.mouse.radius;
+                        let force = (maxDistance - distance) / maxDistance;
+                        let directionX = forceDirectionX * force * p.density;
+                        let directionY = forceDirectionY * force * p.density;
+                        
+                        p.x -= directionX;
+                        p.y -= directionY;
+                    } else {
+                        if (p.x !== p.baseX) p.x -= (p.x - p.baseX) / 10;
+                        if (p.y !== p.baseY) p.y -= (p.y - p.baseY) / 10;
+                    }
+                } else {
+                    if (p.x !== p.baseX) p.x -= (p.x - p.baseX) / 10;
+                    if (p.y !== p.baseY) p.y -= (p.y - p.baseY) / 10;
+                }
+            }
+
+            connectParticles() {
+                let maxDistance = 45;
+                for (let a = 0; a < this.particles.length; a++) {
+                    for (let b = a; b < this.particles.length; b++) {
+                        let dx = this.particles[a].x - this.particles[b].x;
+                        let dy = this.particles[a].y - this.particles[b].y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < maxDistance) {
+                            let opacityValue = 1 - (distance / maxDistance);
+                            this.ctx.strokeStyle = `rgba(${this.colorRGB}, ${opacityValue * 0.15})`;
+                            this.ctx.lineWidth = 1;
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(this.particles[a].x, this.particles[a].y);
+                            this.ctx.lineTo(this.particles[b].x, this.particles[b].y);
+                            this.ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            animate() {
+                if (!this.isActive) return;
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                for (let i = 0; i < this.particles.length; i++) {
+                    this.drawParticle(this.particles[i]);
+                    this.updateParticle(this.particles[i]);
+                }
+                
+                this.connectParticles();
+                this.animationId = requestAnimationFrame(() => this.animate());
+            }
+
+            start() {
+                if (this.isActive) return;
+                this.isActive = true;
+                this.resize();
+                if (this.particles.length === 0) {
+                    this.initParticles();
+                }
+                this.animate();
+            }
+
+            stop() {
+                this.isActive = false;
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+            }
+        }
+
+        // Initialize Backgrounds
+        const bgRadar = new InteractiveBackground('radar-canvas-bg', 'view-radar', '22, 0, 230'); // Blue
+        const bgSketch = new InteractiveBackground('sketch-canvas-bg', 'view-sketch', '17, 17, 17'); // Dark Gray/Ink
+        const bgAnalytics = new InteractiveBackground('analytics-canvas-bg', 'view-analytics', '239, 68, 68'); // Red
+
+        // Modify switchView to manage canvas animation state
+        const originalSwitchView = switchView;
+        switchView = function(viewName) {
+            originalSwitchView(viewName);
+            
+            // Stop all
+            bgRadar.stop();
+            bgSketch.stop();
+            bgAnalytics.stop();
+
+            // Start specific
+            if (viewName === 'radar') bgRadar.start();
+            else if (viewName === 'sketch') bgSketch.start();
+            else if (viewName === 'analytics') bgAnalytics.start();
+        }
+        
+    </script>
+</body>
+</html>
