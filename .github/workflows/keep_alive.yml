@@ -1,5 +1,5 @@
 name: Keep Hugging Face Space Alive
-on:
+于:
   schedule:
     - cron: "0 */24 * * *"
   workflow_dispatch:
@@ -10,4 +10,4 @@ jobs:
     steps:
       - name: Ping Space
         run: |
-          curl -I https://huggingface.co/spaces/zhry/Holo-Arch-Engine
+          curl -I https://zhry-holo-arch-engine.hf.space
