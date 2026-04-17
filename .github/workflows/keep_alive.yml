@@ -1,5 +1,5 @@
 name: Keep Hugging Face Space Alive
-于:
+on:
   schedule:
     - cron: "0 */24 * * *"
   workflow_dispatch:
